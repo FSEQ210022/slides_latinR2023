@@ -1,0 +1,399 @@
+---
+title: "![](img/horizontal_SB_color.png){width=300}"
+subtitle: "Monitoreo de la sequía en Chile continental con indicadores de oferta y demanda de agua<br> ![](img/logo_umayor.png){width=300} ![](img/logo_hemera.png){width=400} "
+author : "Francisco Zambrano"
+date: "2023/09/08"
+format: 
+    revealjs:
+      slide-number: true
+      transition: fade
+      background-transition: fade
+      theme: default
+      logo: img/horizontal_SB_color.png
+      footer: "FSEQ210022"
+editor: visual
+engine: knitr
+title-slide-attributes:
+    data-background-image: "img/bg.jpg"
+    data-background-size: cover
+    data-background-opacity: ".4"
+---
+
+# Contexto {background-color="darkgreen"}
+
+## Las `actividades humanas`, principalmente a través de las emisiones de gases de efecto invernadero, han causado `inequívocamente` el `calentamiento global` (IPCC, AR6, 2023) {.center background-color="orange"}
+
+## `Desde 1950` los eventos de `sequía` se han `intensificado` y han sido más `frecuentes` (IPCC, AR6, 2023) {.center background-color="ocean"}
+
+## A `2°C` de anomalía o más, se proyectan `sequías` `agrícolas` y `ecológicas` más `frecuentes` y/o `severas` en América del Sur (confianza media a alta) (IPCC, AR6, 2023) {.center background-color="lightblue"}
+
+# ¿Qué es la sequía? {background-color="orange"}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Cuando las condiciones `climáticas` cambian respecto a su situación `normal` provocando un `déficit` prolongado entre la `oferta` (precipitación) y la `demanda` de `agua` (temperatura) {.center}
+
+## 
+
+![](img/wmo_drought_español.png){fig-align="center"}
+
+# ¿Cómo se cálculo un índice de sequía? {background-color="grey"}
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Precipitación mensual Cuenca del río Bueno**
+
+```{r include  =FALSE}
+library(DBI)
+library(tidyverse)
+library(gt)
+library(highcharter)
+
+con2 <- dbConnect(RPostgres::Postgres(),
+                  dbname = "shiny",
+                  host = Sys.getenv("HOST"),
+                  user = "shiny",
+                  password = Sys.getenv("SHINY_PSQL_PWD"))
+
+data_clima_sequia <- tbl(con2, "data_clima_sequia")
+
+data_clima_sequia |> 
+  filter(unit == 'cuencas' & code == "091") |> 
+  ungroup() |> 
+  select(date,pre) |> 
+  collect() -> d
+
+dates <- rev(seq(ymd("1981-01-01"),ymd("2023-07-01"),by="1 month"))
+dates |> month() |> (\(x) which(x ==8))() ->i
+dates_jul <- dates[i]
+```
+
+```{r}
+highchart2() |>
+  hc_add_series(data =d, type = 'column',name = 'Precipitación mensual (mm)',hcaes(x= date, y = round(pre))) |> 
+  hc_xAxis(dateTimeLabelFormats = list(day = '%m  %Y'), type = "datetime") 
+```
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Precipitación acumulada 12 meses**
+
+$$PA12_{agosto_{2023}} = \sum_{sept_{2022}}^{agosto_{2023}} P$$
+
+hasta ...
+
+$$PA12_{dic_{1981}} = \sum_{enero_{1981}}^{dic_{1981}} P$$
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Acumulamos la precipitación para los 12 meses**
+
+![](animacion_acumlacion_precipitacion.mp4){width="80%" fig-align="center"}
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Precipitación acumulada 12 meses**
+
+```{r}
+library(zoo)
+x.t <- zoo(rev(d$pre))
+xt_sum <- rollapply(x.t,12,sum)
+
+df_12 <- tibble(dates = dates[1:500],pre_12 = as.numeric(xt_sum))
+
+ggplot(df_12,aes(dates,pre_12)) +
+  geom_col(fill='blue') + 
+  scale_x_date(date_breaks = "2 years",date_labels = "%Y",expand =c(0,0)) +
+  ylab('Precipitación acumulada 12 meses (mm)') +
+  theme_bw() +
+  theme(axis.title.x = element_blank())
+```
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Precipitación acumulada 12 meses para julio**
+
+```{r}
+df_12_jul <- df_12 |> filter(month(dates) == 7)
+
+df_12_jul |> 
+  ggplot(aes(dates,pre_12)) + 
+  geom_col(fill = 'blue') +
+  scale_x_date(date_breaks = "2 years",date_labels = "%Y",expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(y = 'Precipitación acumulada \n doce meses (julios) (mm)') +
+  theme_bw() +
+  theme(axis.title.x = element_blank())
+```
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Distribución de probabilidad de PA12 julio**
+
+```{r}
+df_12_jul |> 
+  ggplot(aes(pre)) +
+  geom_density(aes(pre_12),fill = 'blue') +
+  theme_bw()
+```
+
+## Ejemplo con SPI-12 {.smaller}
+
+**Normalización de la distribución de PA12 julio**
+
+```{r}
+library(bestNormalize)
+set.seed(354)
+norm <- bestNormalize(df_12_jul$pre_12,standardize = FALSE)
+df_12norm <- tibble(date = df_12_jul$dates,pre_12n = norm$x.t,pre_12ns = as.numeric(scale(norm$x.t)))
+
+vals <- c(mean(df_12norm$pre_12n)-sd(df_12norm$pre_12n),mean(df_12norm$pre_12n),mean(df_12norm$pre_12n)+sd(df_12norm$pre_12n))
+plot_d1 <- ggplot() +
+  geom_density(data =df_12norm,aes(pre_12n),fill = 'blue') +
+  geom_vline(xintercept = vals[1],col='red',lty = 'dashed') +
+  geom_vline(xintercept = vals[3],col='red',lty = 'dashed') +
+  geom_vline(xintercept = vals[2],col='red',lty = 'dashed') +
+  annotate('text',x = vals[1],y=0.0013,label = paste("mu-~sigma==",round(vals[1],1),"~mm"),parse = TRUE ) +
+  annotate('text',x = vals[2],y=0.0013,label = paste("mu==",round(vals[2],1),"~mm"),parse = TRUE ) +
+  annotate('text',x = vals[3],y=0.0013,label = paste("mu+~sigma==",round(vals[3],1),"~mm"),parse = TRUE ) +
+  xlab('Precipitación acumulada 12 meses (julios) [mm]') +
+  theme_bw()
+
+plot_d2 <- ggplot() +
+  geom_density(data =df_12norm,aes(pre_12ns),fill = 'blue') +
+  geom_vline(xintercept = -1,col='red',lty = 'dashed') +
+  geom_vline(xintercept = 0,col='red',lty = 'dashed') +
+  geom_vline(xintercept = 1,col='red',lty = 'dashed') +
+  annotate('text',x = -1,y=0.3,label = "mu-~sigma==-1",parse = TRUE ) +
+  annotate('text',x = 0,y=0.3,label = "mu==0",parse = TRUE ) +
+  annotate('text',x = 1,y=0.3,label = "mu+~sigma==1",parse = TRUE ) +
+  xlab('z-score') +
+  ylab('SPI-12\n\n')+
+  theme_bw()
+
+library(gridExtra)
+grid.arrange(plot_d1,plot_d2,nrow = 2)
+```
+
+## Ejemplo con SPI-12 {.smaller}
+
+```{r}
+#| out.width="\\textwidth"
+
+plot_ts1 <- df_12norm |> 
+  mutate(preC = pre_12n - vals[2]) |>  
+  ggplot(aes(date,preC)) +
+  geom_col(aes(fill = pre_12n > vals[2])) +
+  geom_col(aes(fill = pre_12n < vals[2])) +
+  scale_fill_manual(values = c('blue', 'red')) +
+  scale_y_continuous(labels = function(x) round(x + vals[2])) +
+  ylab('Precipitación acumulada de \n 12 meses normalizada (mm)') +
+  theme_bw() + 
+  theme(legend.position = 'none',axis.title.x = element_blank())
+
+plot_ts2 <- ggplot(df_12norm,aes(date,pre_12ns)) +
+  geom_col(aes(fill = pre_12ns > 0)) +
+  geom_col(aes(fill = pre_12ns < 0)) +
+  scale_fill_manual(values = c('blue', 'red')) +
+  ylab('SPI-12')+
+  theme_bw() + 
+  theme(legend.position = 'none',axis.title.x = element_blank())
+
+grid.arrange(plot_ts1,plot_ts2,nrow = 2)
+```
+
+# ODES Unidades {background-color="grey"}
+
+<https://odes-chile.org/app/unidades>
+
+## Características {.smaller}
+
+-   Monitoreo del `clima` con frecuencia `mensual` desde 1981 hasta ahora, para `Chile continental`.
+-   Utiliza datos de reanálisis climático `ERA5-Land` y `MODIS` (Espectrorradiómetro de imágenes de media resolución) de vegetación.
+-   Variables:
+    -   Precipitación
+    -   Temperatura
+    -   Demanda Evaporativa de la Atmósfera (ET0)
+    -   Humedad de suelo
+    -   Contenido de agua equivalente de nieve
+    -   Estado de desarrollo de la vegetación
+
+## Indicadores de sequía {.smaller}
+
+`Indicadores de sequía`: Utilizan anomalías de variables climáticas agregadas en varios meses.
+
+Ventajas de los indicadores de sequía
+
+1.  Permiten comparación entre diferentes `zonas climáticas` (humedas, aridas, ...)
+2.  Permiten comparación entre diferentes `estaciones del año`.
+3.  Permiten analizar la sequía a `corto y largo plazo` (ej., mega sequía)
+4.  Se pueden categorizar de acuerdo a la ocurrencia del evento, de acuerdo a su comportamiento histórico.
+
+## Categorias de sequía
+
+Calculada para cada unidad de acuerdo a su distribución temporal 1981-ahora.
+
+::: columns
+::: {.column width="50%"}
+![](img/histograma_percentiles.jpg)
+:::
+
+::: {.column width="50%"}
+```{r}
+library(gt)
+library(tibble)
+palette <- c('#730000','#E60000','#FFAA00','#FFD37F','#FFFF00','#FFFFFF','#8CCDEF','#00BFFF','#1D90FF','#4169E1','#0000FF')
+labels <-  c("Sequía excepcional", "Sequía extrema", "Sequía severa", "Sequía moderada", "Anormalmente seco",'Normal',"Anormalmente humedo",'Moderadamente humedo','Severamente humedo','Extramademente humedo', 'Excepcionalmente humedo')
+
+data.frame(`Percentiles` = c('0-2','2-5','5-10','10-20','20-30','30-70','70-80','80-90','90-95','95-98','98-100'),
+                               retorno = c(">50","20-50","10-20","5-10","1,5-5","-","1,5-5","5-10","10-20","20-50",">50"),
+           niveles = labels) |> as_tibble() |> gt() |>  cols_align(
+    align = "center",
+    columns = everything()
+  ) |> cols_label(retorno = 'Retorno (años)') |> data_color(palette = palette,columns = 'niveles', method = 'factor',levels = labels)
+```
+:::
+:::
+
+## Indicadores de sequía derivados en ODES {.smaller}
+
+-   `SPI`: índice estandarizado de precipitación
+-   `SPEI`: índice estandarizado de precipitación-Evapotranspiración
+-   `EDDI`: índice de sequía de demanda evaporativa
+-   `zcSM`: índice estandarizado de humedad de suelo
+-   `zcNDVI`: índice estandarizado de vegetación
+-   `SWEI`: índice estandarizado de contenido de agua equivalente de nieve
+
+Todos calculado a agregaciones de 1, 3, 6, 12, 24 y 36 meses, excepto zcNDVI que está a 1,3 y 6 meses.
+
+## Información agregada a diferentes unidades administrativas ...
+
+::: columns
+::: {.column width="25%"}
+**Region**\
+![](img/spei24_region.png)
+:::
+
+::: {.column width="25%"}
+**Provincia**\
+![](img/spei24_provincia.png)
+:::
+
+::: {.column width="25%"}
+**Comuna**\
+![](img/spei24_comuna.png)
+:::
+
+::: {.column width="25%"}
+**Distrito**\
+![](img/spei24_distrito.png)
+:::
+:::
+
+## ... e hidrológicas
+
+::: columns
+::: {.column width="33%"}
+**Cuenca**\
+![](img/spei24_cuenca.png)
+:::
+
+::: {.column width="33%"}
+**Sub-cuenca**\
+![](img/spei24_provincia.png)
+:::
+
+::: {.column width="33%"}
+**Sub-subcuenca**\
+![](img/spei24_comuna.png)
+:::
+:::
+
+# Situación de sequía a Julio 2023, largo plazo
+
+##  {background-image="img/fig_spei24_macrozonas.png" background-size="contain"}
+
+##  {.smaller}
+
+::: columns
+::: {.column width="33%"}
+**SPEI 24 meses**\
+Precipitación-Evapotranspiración
+
+![](img/SPEI24_julio2023.png)
+:::
+
+::: {.column width="33%"}
+**EDDI 24 meses**\
+Demanda de agua de la atmósfera
+
+![](img/EDDI24_julio2023.png)
+:::
+
+::: {.column width="33%"}
+**zcSM 24 meses**\
+Humedad de suelo <br><br>
+
+![](img/zcSM24_julio2023.png)
+:::
+:::
+
+# Situación de sequía a Julio 2023, corto plazo
+
+##  {.smaller}
+
+::: columns
+::: {.column width="33%"}
+**SPEI 6 meses**\
+Precipitación-Evapotranspiración
+
+![](img/SPEI6_julio2023.png)
+:::
+
+::: {.column width="33%"}
+**EDDI 6 meses**\
+Demanda de agua de la atmósfera
+
+![](img/EDDI6_julio2023.png)
+:::
+
+::: {.column width="33%"}
+**zcSM 6 meses**\
+Humedad de suelo <br><br>
+
+![](img/zcSM6_julio2023.png)
+:::
+:::
+
+## Índice estandarizado de contenido de agua equivalente de nieve (SWEI) {.smaller}
+
+::: columns
+::: {.column width="25%"}
+![](img/swei_zona1.png)
+:::
+
+::: {.column width="25%"}
+![](img/swei_zona2.png)
+:::
+
+::: {.column width="25%"}
+![](img/swei_zona3.png)
+:::
+
+::: {.column width="25%"}
+![](img/swei_zona4.png)
+:::
+:::
+
+##  {background-image="img/ODES_Logo_animación.gif" background-size="contain"}
+
+## Gracias!! {.center}
+
+![](https://cdn-icons-png.flaticon.com/512/8743/8743996.png){width="50"} <https://odes-chile.org/app/unidades>\
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Linkedin_unofficial_colored_svg-512.png){width="50"} <https://www.linkedin.com/company/odes-chile/>\
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Instagram_colored_svg_1-512.png){width="50"} [\_odeschile](https://instagram.com/_odeschile)\
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Twitter_colored_svg-512.png){width="50"} [\@odes_chile](https://twitter.com/odes_chile)

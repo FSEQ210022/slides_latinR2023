@@ -1,0 +1,206 @@
+---
+title: "Un observatorio de sequía para ![](img/chile-flag.png){width=10%} desarrollado con <br> ![](img/Rlogo.png){width=10%} {{< fa plus color='blue' >}}![](img/Shiny-logo.png){width=12%}"
+author: "Francisco Zambrano, Joshua Kunst, <br> Fabián Llanos, Joaquín Riquelme"
+#date: 19/10/2022
+format: 
+  revealjs:
+    slide-number: true
+    transition: fade
+    background-transition: fade
+    theme: default
+    logo: img/horizontal_SB_color.png
+    footer: "app: [https:/odes-chile.org/app/unidades](https:/odes-chile.org/app/unidades) <br> slides: [link slides](https:/odes-chile.org/app/unidades) "
+title-slide-attributes:
+    data-background-image: "img/bg.jpg"
+    data-background-size: cover
+    data-background-opacity: ".4"
+bibliography: "referencias.bib"
+editor: source
+---
+
+# Contexto {background-color='lightblue'}
+
+## Las `actividades humanas`, principalmente a través de las emisiones de gases de efecto invernadero, han causado `inequívocamente` el `calentamiento global` [@IPCC2023] {.center background-color="orange"}
+
+## `Desde 1950` los eventos de `sequía` se han `intensificado` y han sido más `frecuentes` [@IPCC2023] {.center background-color="ocean"}
+
+## A `2°C` de anomalía o más, se proyectan `sequías` `agrícolas` y `ecológicas` más `frecuentes` y/o `severas` en América del Sur (confianza media a alta) [@IPCC2023] {.center background-color="lightblue"}
+
+## ¿La sequía en Chile? {.center}
+
+## {background-image='img/fig_spei24_macrozonas.png' background-size='contain'}
+
+## Necesidad 
+
+* Desarrollar una `aplicación web` que permita el acceso a información respecto a la ocurrencia de `eventos de sequía` para `Chile continental`.
+
+* Información `dinámica`, `actualizada` y de `fácil acceso` para tomadores de decisiones y público en general.
+
+* Qué permita el monitoreo de la sequía desde `multiples variables ambientales` (ej., precipitación, temperatura, humedad de suelo, nieve)
+
+## Oportunidad {.smaller}
+
+::: {.columns}
+::: {.column width=50%}
+* Disponibilidad de datos actualizados de variables ambientales (ej., ERA5, MODIS)
+
+* Análisis de datos geoespaciales con ![](img/Rlogo.png){width=5%} [@RCoreTeam2023]:
+  * ![](img/sf-logo.gif){width=10%}[@Pebesma2018]
+  * ![](img/logo-terra.png){width=10%} [@Hijmans2023] 
+  * `{stars}` [@Pebesma2023]
+  
+:::
+::: {.column width=50%}
+```{r}
+#| echo: true
+#| message: true
+library(terra)
+library(sf)
+library(stars)
+```
+:::
+:::
+
+## Oportunidad {.smaller}
+
+::: {.columns}
+::: {.column width=50%}
+* Analisis de datos con ![](img/Rlogo.png){width=10%} ![](img/hex-tidyverse.png){width=10%} [@Wickham2019]
+
+* Entorno para desarrollo de aplicaciones de forma fácil con ![](img/Shiny-logo.png){width=10%} [@Chang2023]
+
+:::
+::: {.column width=50%}
+```{r}
+#| echo: true
+#| message: true
+library(tidyverse)
+library(shiny)
+```
+:::
+:::
+
+## {background-image='img/ODES_Logo_animacion.gif' background-size='contain'}
+
+## {background-image='img/odes_plataformas.png' background-size='contain'}
+
+# Arquitectura de <br> ODES-Unidades {background-color='orange'}
+
+## Diagrama General {background-image='img/diagrama-general-odes_unidades.jpg' background-size='contain'}
+
+## Back-End {background-image='img/back-end_odes.jpg' background-size='contain'}
+
+## Indicadores de sequía derivados en ODES {.smaller}
+
+-   `SPI`: índice estandarizado de precipitación
+-   `SPEI`: índice estandarizado de precipitación-Evapotranspiración
+-   `EDDI`: índice de sequía de demanda evaporativa
+-   `zcSM`: índice estandarizado de humedad de suelo
+-   `SWEI`: índice estandarizado de contenido de agua equivalente de nieve
+
+Todos calculados a agregaciones de 1, 3, 6, 12, 24 y 36 meses.
+
+## BBDD Geoespacial
+
+* Series de tiempo de indicadores de sequía almacenado en formato Cloud Optimized GeoTiff (`COGs`).
+  * Permiten flujos de trabajo `más eficiente`
+  * Solicitudes de rango HTTP GET para solicitar `sólo las partes` de un raster que se `necesitan`.
+
+* Almacenado en un bucket en `Amazon Web Service (AWS)`
+
+## BBDD Geoespacial {background-image='img/aws_bucket.png' background-size='contain'}
+
+## BBDD Rectangular (tabular) {.smaller}
+
+### Información agregada a diferentes unidades administrativas ...
+
+::: columns
+::: {.column width="25%"}
+**Region**\
+![](img/spei24_region.png)
+:::
+
+::: {.column width="25%"}
+**Provincia**\
+![](img/spei24_provincia.png)
+:::
+
+::: {.column width="25%"}
+**Comuna**\
+![](img/spei24_comuna.png)
+:::
+
+::: {.column width="25%"}
+**Distrito**\
+![](img/spei24_distrito.png)
+:::
+:::
+
+## BBDD Rectangular (tabular) {.smaller}
+
+### ... e hidrológicas
+
+::: columns
+::: {.column width="33%"}
+**Cuenca**\
+![](img/spei24_cuenca.png)
+:::
+
+::: {.column width="33%"}
+**Sub-cuenca**\
+![](img/spei24_provincia.png)
+:::
+
+::: {.column width="33%"}
+**Sub-subcuenca**\
+![](img/spei24_comuna.png)
+:::
+:::
+
+## BBDD Rectangular (tabular) {.smaller}
+
+```{r}
+#| echo: true
+library(pool)
+library(tidyverse)
+pool <- dbPool(
+  drv = RPostgres::Postgres(),
+  dbname = "shiny",
+  host = Sys.getenv("HOST"),
+  user = "shiny",
+  password = Sys.getenv("SHINY_PSQL_PWD")
+)
+
+data_clima_sequia <- tbl(pool, "data_clima_sequia")
+data_clima_sequia |> 
+  tally()
+```
+
+## BBDD Rectangular (tabular) {.smaller}
+
+```{r}
+#| echo: true
+data_clima_sequia |> glimpse()
+```
+
+## BBDD Rectangular (tabular) {.smaller}
+
+```{r}
+#| echo: true
+data_clima_sequia |>
+  group_by(unit) |> 
+  summarize(n = n())
+```
+
+## Diagrama General {background-image='img/diagrama-general-odes_unidades.jpg' background-size='contain'}
+
+
+## Front-End
+
+* {leaflet}: Crear mapas intercativos en la web [@Cheng2023]
+* {highcharter}: Crear gráficos interactivos con [Highcharts](https://www.highcharts.com/) [@Kunst2022]
+* Desarrollo disponible de forma pública en github [https://github.com/ODES-Chile/odes-unidades-shiny-app](https://github.com/ODES-Chile/odes-unidades-shiny-app)
+
+## {background-image='img/odes_unidades_view1.png' background-size='contain'}
+
+## Referencias
