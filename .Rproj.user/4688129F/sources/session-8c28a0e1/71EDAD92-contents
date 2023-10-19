@@ -205,6 +205,24 @@ data_clima_sequia |>
 
 ## {background-image='img/odes_unidades_view1.png' background-size='contain'}
 
+# Consideraciones finales {background-color='brown'}
+
+## Recapitulando {.smaller}
+
+* Se creó la app web [odes-unidades](https://odes-chile.org/app/unidades/) para el monitoreo de sequía en Chile continental.
+
+* Utiliza datos de reanálisis climático `ERA5-Land`.
+
+* Utiliza paquetes para análisis de `datos geoespaciales` (`{sf}`, `{terra}`, `{stars}`).
+
+* Utiliza paquetes para `análisis de datos` (`{tidyverse}`)
+
+* Almacena los datos rectangulares en una `BBDD MySQL`
+
+* Utiliza `{leaflet}` y `{highcharter}` para visualización de mapas y gráficos interactivos.
+
+* Utiliza `{shiny}` para crear una aplicación web.
+
 ## Gracias!! {.center}
 
 ![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Linkedin_unofficial_colored_svg-512.png){width="50"} <https://www.linkedin.com/company/odes-chile/>\
