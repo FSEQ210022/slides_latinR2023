@@ -1,5 +1,5 @@
 ---
-title: "Un observatorio de sequía para ![](img/chile-flag.png){width=10%} desarrollado con <br> ![](img/Rlogo.png){width=10%} {{< fa plus color='blue' >}}![](img/Shiny-logo.png){width=12%}"
+title: "Un observatorio de sequía para ![](img/chile-flag.png){width=10%} desarrollado con <br> ![](img/Rlogo.png){width=15%} {{< fa plus color='blue' >}}![](img/Shiny-logo.png){width=10%}"
 author: "Francisco Zambrano, Joshua Kunst, <br> Fabián Llanos, Joaquín Riquelme"
 #date: 19/10/2022
 format: 
@@ -29,6 +29,8 @@ editor: source
 ## ¿La sequía en Chile? {.center}
 
 ## {background-image='img/fig_spei24_macrozonas.png' background-size='contain'}
+
+# Necesidad y Oportunidad {background-color='grey'}
 
 ## Necesidad 
 
@@ -199,7 +201,7 @@ data_clima_sequia |>
 
 * {leaflet}: Crear mapas intercativos en la web [@Cheng2023]
 * {highcharter}: Crear gráficos interactivos con [Highcharts](https://www.highcharts.com/) [@Kunst2022]
-* Desarrollo disponible de forma pública en github [https://github.com/ODES-Chile/odes-unidades-shiny-app](https://github.com/ODES-Chile/odes-unidades-shiny-app)
+* Desarrollo disponible de forma pública en github [https://github.com/ODES-Chile/odes-unidades-shiny-app](https://github.com/ODES-Chile/odes-unidades-shiny-app) [@Kunst2023]
 
 ## {background-image='img/odes_unidades_view1.png' background-size='contain'}
 
