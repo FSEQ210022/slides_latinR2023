@@ -1,0 +1,226 @@
+---
+title: "Una radiografía a la sequía en la cuenca del Aconcagua"
+subtitle: "![](img/horizontal_SB_color.png){width=200} información para actuar en tiempos de sequía <br> ![](img/logo_umayor.png){width=300} ![](img/logo_hemera.png){width=400} "
+author : "Francisco Zambrano"
+format: 
+    revealjs:
+      slide-number: true
+      transition: fade
+      background-transition: fade
+      theme: default
+      logo: img/horizontal_SB_color.png
+      footer: "FSEQ210022"
+editor: visual
+engine: knitr
+title-slide-attributes:
+    data-background-image: "img/bg.jpg"
+    data-background-size: cover
+    data-background-opacity: ".4"
+---
+
+# ¿Qué es la sequía? {background-color="orange"}
+
+```{css}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Cuando las condiciones `climáticas` cambian respecto a su situación `normal` provocando un `déficit` prolongado entre la `oferta` (precipitación) y la `demanda` de `agua` (temperatura) {.center}
+
+## 
+
+![](img/wmo_drought_español.png){fig-align="center"}
+
+##  {background-image="img/sequía.jpg"}
+
+##  {background-image="img/tropical-rainforest.jpg"}
+
+# ¿Cómo la medimos? {background-color="lightblue"}
+
+##  {background-image="img/water_balance2.jpeg" background-size="contain"}
+
+# Variables climáticas {background-color="orange"}
+
+## Datos usados
+
+Modelo climáticos de reanalisis producto `ERA5-Land`
+
+-   `Resolución espacial:` 0.1° (9km)
+-   `Frecuencia temporal:` horaria
+-   `Datos históricos:` desde 1950
+-   `Variables usadas:`
+    -   Temperatura
+    -   Precipitación
+    -   Humedad de suelo
+
+## Datos usados
+
+Espectroradiometro de imágenes de Resolución Moderada (`MODIS`)
+
+-   `Producto:` MOD13A3.061
+-   `Resolución espacial:` \~1km
+-   `Frecuencia temporal:` mensual
+-   `Datos históricos:` desde 2000
+-   `Variables usadas:`
+    -   Índice de vegetación de diferencia normalizada (NDVI)
+
+## Veamos la variación de variables climáticas promediadas en la cuenca del Río Aconcagua {.center}
+
+##  {background-image="img/clima_aconcagua.png" background-size="contain"}
+
+<!-- ## Variables climáticas {.smaller}  -->
+
+<!-- Datos mensuales entre 1981-2023   -->
+
+<!-- Fuente: [odes-chile.org/app/unidades](https://odes-chile.org/app/unidades) -->
+
+<!-- :::{.columns} -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Precipitación -->
+
+<!-- ![](img/odes_precipitacion.png) -->
+
+<!-- ::: -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Temperatura -> Evapotranspiración -->
+
+<!-- ![](img/odes_et0.png) -->
+
+<!-- ::: -->
+
+<!-- ::: -->
+
+<!-- ## Variables climáticas {.smaller}  -->
+
+<!-- Datos mensuales entre 1981-2023   -->
+
+<!-- Fuente: [odes-chile.org/app/unidades](https://odes-chile.org/app/unidades) -->
+
+<!-- :::{.columns} -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Humedad de suelo -->
+
+<!-- ![](img/odes_humedad_suelo.png) -->
+
+<!-- ::: -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Vegetación -->
+
+<!-- ::: -->
+
+<!-- ::: -->
+
+# Indicadores de sequía {background-color="darkgreen"}
+
+## Utilizan anomalías climáticas agregadas en varios meses {.center}
+
+## Ventajas de los indicadores de sequía
+
+1.  Permiten comparación entre diferentes zonas climáticas (humedas, aridas, ...)
+
+2.  Permiten comparación entre diferentes estaciones del año.
+
+3.  Se pueden categorizar de acuerdo a la ocurrencia del evento, de acuerdo a su comportamiento histórico.
+
+## Ahora veamos la variación del promedio de indicadores de sequía en la cuenca del Río Aconcagua {.center}
+
+##  {background-image="img/clima_aconcagua.png" background-size="contain"}
+
+##  {background-image="img/sequia_aconcagua.png" background-size="contain"}
+
+## Categorias de sequía
+
+```{r}
+library(gt)
+library(tibble)
+palette <- c('#730000','#E60000','#FFAA00','#FFD37F','#FFFF00','#FFFFFF','#8CCDEF','#00BFFF','#1D90FF','#4169E1','#0000FF')
+labels <-  c("Sequía excepcional", "Sequía extrema", "Sequía severa", "Sequía moderada", "Anormalmente seco",'Normal',"Anormalmente humedo",'Moderadamente humedo','Severamente humedo','Extramademente humedo', 'Excepcionalmente humedo')
+
+data.frame(`Percentiles` = c('0-2','2-5','5-10','10-20','20-30','30-70','70-80','80-90','90-95','95-98','98-100'),
+                               retorno = c(">50","20-50","10-20","5-10","1,5-5","-","1,5-5","5-10","10-20","20-50",">50"),
+           niveles = labels) |> as_tibble() |> gt() |>  cols_align(
+    align = "center",
+    columns = everything()
+  ) |> cols_label(retorno = 'Retorno (años)') |> data_color(palette = palette,columns = 'niveles', method = 'factor',levels = labels)
+```
+
+<!-- ## Anomalías {.smaller} -->
+
+<!-- Datos mensuales entre 1981-2023   -->
+
+<!-- Fuente: [odes-chile.org/app/unidades](https://odes-chile.org/app/unidades) -->
+
+<!-- :::{.columns} -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Precipitación -> SPI-12 -->
+
+<!-- ![](img/odes_spi12.png) -->
+
+<!-- ::: -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Evapotranspiración -> EDDI-12 -->
+
+<!-- ![](img/odes_eddi12.png) -->
+
+<!-- ::: -->
+
+<!-- ::: -->
+
+<!-- ## Anomalías {.smaller} -->
+
+<!-- Datos mensuales entre 1981-2023   -->
+
+<!-- Fuente: [odes-chile.org/app/unidades](https://odes-chile.org/app/unidades) -->
+
+<!-- :::{.columns} -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Humedad de suelo -->
+
+<!-- ![](img/odes_SMA.png) -->
+
+<!-- ::: -->
+
+<!-- :::{.column width="50%"} -->
+
+<!-- - Vegetación -->
+
+<!-- ![](img/odes_zcNDVI6.png) -->
+
+<!-- ::: -->
+
+<!-- ::: -->
+
+# Sequía en la cuenca del río Aconcagua {background-color="grey"}
+
+## Sequía a mayo 2023 en las comunas de la cuenca {.center}
+
+##  {background-image="img/map_spi12_aconcagua.png" background-size="contain"}
+
+##  {background-image="img/map_eddi12_aconcagua.png" background-size="contain"}
+
+##  {background-image="img/map_zcsma_aconcagua.png" background-size="contain"}
+
+##  {background-image="img/map_zcndvi_aconcagua.png" background-size="contain"}
+
+##  {background-image="img/ODES_Logo_animación.gif" background-size="contain"}
+
+## Gracias!! {.center}
+
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Linkedin_unofficial_colored_svg-512.png){width="50"} <https://www.linkedin.com/company/odes-chile/>\
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Instagram_colored_svg_1-512.png){width="50"} [\_odeschile](https://instagram.com/_odeschile)\
+![](https://cdn2.iconfinder.com/data/icons/social-media-2285/512/1_Twitter_colored_svg-512.png){width="50"} [\@odes_chile](https://twitter.com/odes_chile)
